@@ -1,8 +1,13 @@
 #!/bin/sh
+export HUBOT_XMPP_USERNAME=hbpadmin@platform
+#export HUBOT_XMPP_PASSWORD=password_here
+export HUBOT_XMPP_ROOMS=1841@collab.humanbrainproject.eu
+export HUBOT_XMPP_HOST=bbpcc021.epfl.ch
+export HUBOT_XMPP_PORT=5222
 
 set -e
 
 npm install
 export PATH="node_modules/.bin:node_modules/hubot/node_modules/.bin:$PATH"
 
-exec node_modules/.bin/hubot --name "hbp-hubot" "$@"
+exec node_modules/.bin/hubot --name "hubot" -a "xmpp" "$@"
