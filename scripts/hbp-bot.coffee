@@ -6,6 +6,7 @@ module.exports = (robot) ->
   ]
   userApiUrl = "https://services-dev.humanbrainproject.eu/idm/v1/api/user"
   oidcUrl = "https://services-dev.humanbrainproject.eu/oidc"
+  profileUrl = "https://services-dev.humanbrainproject.eu/idm/manager/#/user"
   ciUrl = "https://bbpcode.epfl.ch/ci/job"
 
   clientId = process.env.HUBOT_HBP_OIDC_CLIENTID
@@ -37,7 +38,7 @@ module.exports = (robot) ->
         json: true
       })
 
-  buildUserinfo = (u) -> u.displayName + ' (' + u.id + ', ' + u.username + ')'
+  buildUserinfo = (u) -> "#{u.displayName} - [#{u.username}](#{profileUrl}/#{u.username})"
 
   # ########################
   # user bot
@@ -57,7 +58,7 @@ module.exports = (robot) ->
                     json = JSON.parse(body)
                     users = json._embedded.users
                     if users.length > 0
-                      text = (users.map buildUserinfo).join(', ')
+                      text = (users.map buildUserinfo).join('\n\n')
                       msg.send text
                     else
                       msg.send "No idea who #{userinput} is"
@@ -127,7 +128,7 @@ module.exports = (robot) ->
                         json: true
                       }).then (resp) ->
                                 if !started
-                                  msg.send "build started: #{ciUrl}/platform.#{component.name}/#{result.nextBuildNumber}/console" +
+                                  msg.send "build started: [#{result.nextBuildNumber}](#{ciUrl}/platform.#{component.name}/#{result.nextBuildNumber}/console)" +
                                     " I'll let you know when it's done..."
                                   started = true
                                 else if resp.result
@@ -143,7 +144,7 @@ module.exports = (robot) ->
 
 
   robot.respond /release$/i, (msg) ->
-      msg.send 'tell me what you want to release: ' + (components.map (x, i) -> '#' + (i+1) + ' ' + x.name).join()
+      msg.send 'tell me what you want to release: ' + (components.map (x, i) -> '\n\n' + (i+1) + ') ' + x.name).join()
 
   # ########################
   # default bot answer
