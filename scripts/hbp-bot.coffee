@@ -60,16 +60,35 @@ module.exports = (robot) ->
                     msg.send "No idea who #{userinput} is"
 
   # ########################
-  # debug bot (admin only)
-  robot.respond /debug/i, (msg) ->
+  # release bot (admin only)
+  components = [{
+    name: 'collaboratory-functional-tests',
+    params: [
+      { name: 'GERRIT_REFSPEC', value: 'refs/heads/master' },
+      { name : 'GERRIT_BRANCH', value : 'master' },
+      { name: 'test_env', value: 'prod' }
+    ]
+  }]
+
+  robot.respond /release(.*)/i, (msg) ->
+    # unless process.env.HUBOT_HBP_CI_USERNAME
+    #     and process.env.HUBOT_HBP_CI_USER_TOKEN
+    #     and process.env.HUBOT_HBP_CI_BUILD_TOKEN
+    #   robot.logger.error 'Jenkins config missing'
+    #   return msg.send "You must set Jenkins env variables first"
+
+    component = escape(msg.match[1])
+    if !component
+      msg.send "tell me what you want to release: " + (components.map (x, i) -> (i+1) + ') ' + x.name).join()
+
     userid = msg.message.user.id
-    token = process.env.HUBOT_OIDC_SECRET
-    if (hbpSuperusers.indexOf userid) == -1
-      getUser(msg, userid, token) (err, res, body) ->
-        name = JSON.parse(body).givenName
-        msg.send "Sorry #{name}, ask an admin to do it for you"
-      return
-    console.log Object(msg)
+    getToken().then (token) ->
+      if (hbpSuperusers.indexOf userid) == -1
+        getUser(msg, userid, token) (err, res, body) ->
+          name = JSON.parse(body).givenName
+          msg.send "Sorry #{name}, ask an admin to do it for you"
+        return
+      console.log Object(msg)
 
   # ########################
   # default bot answer
