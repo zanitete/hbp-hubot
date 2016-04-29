@@ -7,15 +7,15 @@ export HUBOT_HBP_OIDC_CLIENTID=823f058d-2d03-48fa-81e6-32c4360755bf
 
 # export secrets
 # IMPORTANT: do not commit the values below
-export HUBOT_XMPP_PASSWORD=password
+#export HUBOT_XMPP_PASSWORD=password
 
 # OIDC conf
-export HUBOT_HBP_OIDC_CLIENTSECRET=secret
+#export HUBOT_HBP_OIDC_CLIENTSECRET=secret
 
 # Jenkins conf
-export HUBOT_HBP_CI_USERNAME=username
-export HUBOT_HBP_CI_USER_TOKEN=token1
-export HUBOT_HBP_CI_BUILD_TOKEN=token2
+#export HUBOT_HBP_CI_USERNAME=username
+#export HUBOT_HBP_CI_USER_TOKEN=token1
+#export HUBOT_HBP_CI_BUILD_TOKEN=token2
 
 set -e
 
