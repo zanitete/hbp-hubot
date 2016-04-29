@@ -1,0 +1,13 @@
+# fill with the secrets
+# IMPORTANT: do not commit this file
+
+# XMPP conf
+#export HUBOT_XMPP_PASSWORD=
+
+# OIDC conf
+#export HUBOT_HBP_OIDC_CLIENTSECRET=
+
+# Jenkins conf
+#export HUBOT_HBP_CI_USERNAME=
+#export HUBOT_HBP_CI_USER_TOKEN=
+#export HUBOT_HBP_CI_BUILD_TOKEN=
