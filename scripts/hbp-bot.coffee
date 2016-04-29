@@ -6,6 +6,7 @@ module.exports = (robot) ->
   ]
   userApiUrl = "https://services-dev.humanbrainproject.eu/idm/v1/api/user"
   oidcUrl = "https://services-dev.humanbrainproject.eu/oidc"
+  ciUrl = "https://bbpcode.epfl.ch/ci/job"
 
   clientId = process.env.HUBOT_HBP_OIDC_CLIENTID
   clientSecret = process.env.HUBOT_HBP_OIDC_CLIENTSECRET
@@ -27,10 +28,14 @@ module.exports = (robot) ->
         json: true
       }).then (body) -> body.access_token
 
-  getUser = (msg, id, token) ->
-    msg.http("#{userApiUrl}/#{id}")
-      .header('Authorization', "Bearer #{token}")
-      .get()
+  getUser = (id, token) ->
+    http({
+        url: "#{userApiUrl}/#{id}",
+        headers: {
+          authorization: "Bearer #{token}"
+        },
+        json: true
+      })
 
   buildUserinfo = (u) -> u.displayName + ' (' + u.id + ', ' + u.username + ')'
 
@@ -42,22 +47,20 @@ module.exports = (robot) ->
       userinput = msg.message.user.id
 
     getToken().then (token) ->
-      getUser(msg, userinput, token) (err, res, body) ->
-          switch res.statusCode
-            when 200
-              user = JSON.parse(body)
-              msg.send buildUserinfo(user)
-            when 404
-              msg.http("#{userApiUrl}/searchByText?str=#{userinput}")
-                .header('Authorization', "Bearer #{token}")
-                .get() (err, res, body) ->
-                  json = JSON.parse(body)
-                  users = json._embedded.users
-                  if users.length > 0
-                    text = (users.map buildUserinfo).join(', ')
-                    msg.send text
-                  else
-                    msg.send "No idea who #{userinput} is"
+      getUser(userinput, token)
+        .then (user) ->
+                msg.send buildUserinfo(user)
+             ,(error) ->
+                msg.http("#{userApiUrl}/searchByText?str=#{userinput}")
+                  .header('Authorization', "Bearer #{token}")
+                  .get() (err, res, body) ->
+                    json = JSON.parse(body)
+                    users = json._embedded.users
+                    if users.length > 0
+                      text = (users.map buildUserinfo).join(', ')
+                      msg.send text
+                    else
+                      msg.send "No idea who #{userinput} is"
 
   # ########################
   # release bot (admin only)
@@ -70,25 +73,77 @@ module.exports = (robot) ->
     ]
   }]
 
-  robot.respond /release(.*)/i, (msg) ->
-    # unless process.env.HUBOT_HBP_CI_USERNAME
-    #     and process.env.HUBOT_HBP_CI_USER_TOKEN
-    #     and process.env.HUBOT_HBP_CI_BUILD_TOKEN
-    #   robot.logger.error 'Jenkins config missing'
-    #   return msg.send "You must set Jenkins env variables first"
-
-    component = escape(msg.match[1])
-    if !component
-      msg.send "tell me what you want to release: " + (components.map (x, i) -> (i+1) + ') ' + x.name).join()
+  robot.respond /release (.*)/i, (msg) ->
+    unless process.env.HUBOT_HBP_CI_USERNAME and process.env.HUBOT_HBP_CI_USER_TOKEN and process.env.HUBOT_HBP_CI_BUILD_TOKEN
+      robot.logger.error 'Jenkins config missing'
+      return msg.send "You must set Jenkins env variables first"
 
     userid = msg.message.user.id
     getToken().then (token) ->
-      if (hbpSuperusers.indexOf userid) == -1
-        getUser(msg, userid, token) (err, res, body) ->
-          name = JSON.parse(body).givenName
-          msg.send "Sorry #{name}, ask an admin to do it for you"
-        return
-      console.log Object(msg)
+      getUser(userid, token).then (user) ->
+        if (hbpSuperusers.indexOf userid) == -1
+            msg.send "Sorry #{user.givenName}, ask an admin to do it for you"
+            return
+        else
+          input = escape(msg.match[1]).trim()
+          if parseInt input
+            component = components[parseInt(input)-1]
+          else
+            for c in components
+              if c.name == input
+                component = c
+
+          if !component
+            msg.send "I don't know component #{input}"
+            return
+
+          auth = process.env.HUBOT_HBP_CI_USERNAME + ':' + process.env.HUBOT_HBP_CI_USER_TOKEN
+          authHeaders = { authorization: 'Basic ' + new Buffer(auth).toString('base64') }
+
+          # get next build number
+          http({
+            url: "#{ciUrl}/platform.#{component.name}/api/json",
+            headers: authHeaders,
+            json: true
+          }).then (result) ->
+            http({
+              method: 'POST'
+              url: "#{ciUrl}/platform.#{component.name}/build",
+              qs: {
+                token: process.env.HUBOT_HBP_CI_BUILD_TOKEN
+              },
+              headers: authHeaders,
+              form: {
+                json: JSON.stringify({ parameter: component.params })
+              }
+            })
+            .then (resp) ->
+                    msg.send "Build is in the queue! I'll keep you posted..."
+                    started = false
+                    intervalId = setInterval ->
+                      http({
+                        url: "#{ciUrl}/platform.#{component.name}/#{result.nextBuildNumber}/api/json"
+                        headers: authHeaders,
+                        json: true
+                      }).then (resp) ->
+                                if !started
+                                  msg.send "build started: #{ciUrl}/platform.#{component.name}/#{result.nextBuildNumber}/console" +
+                                    " I'll let you know when it's done..."
+                                  started = true
+                                else if resp.result
+                                  msg.send "Build #{component.name}/#{result.nextBuildNumber} completed: #{resp.result}"
+                                  clearInterval(intervalId)
+                              ,(err) ->
+                                console.log 'job #{component.name}/#{result.nextBuildNumber} still queuing'
+
+                    , 10000
+                  ,(err) ->
+                    msg.send "Ops, something went wrong :("
+
+
+
+  robot.respond /release$/i, (msg) ->
+      msg.send 'tell me what you want to release: ' + (components.map (x, i) -> '#' + (i+1) + ' ' + x.name).join()
 
   # ########################
   # default bot answer
