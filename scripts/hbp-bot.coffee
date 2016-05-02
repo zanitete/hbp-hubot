@@ -38,7 +38,7 @@ module.exports = (robot) ->
         json: true
       })
 
-  buildUserinfo = (u) -> "#{u.displayName} - [#{u.username}](#{profileUrl}/#{u.username})"
+  buildUserinfo = (u) -> "#{u.displayName} - #{u.username} - #{u.id} [more](#{profileUrl}/#{u.username})"
 
   # ########################
   # user bot
