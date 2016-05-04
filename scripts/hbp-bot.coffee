@@ -65,32 +65,28 @@ module.exports = (robot) ->
 
   # ########################
   # release bot (admin only)
-  components = [
-  {
+  components = [{
     name: 'collaboratory-frontend',
     params: [
       { name: 'GERRIT_REFSPEC', value: 'refs/heads/master' },
       { name : 'GERRIT_BRANCH', value : 'master' },
       { name: 'release', value: 'none' }
     ]
-  },
-  {
+  },{
     name: 'collaboratory-extension-core',
     params: [
       { name: 'GERRIT_REFSPEC', value: 'refs/heads/master' },
       { name : 'GERRIT_BRANCH', value : 'master' },
       { name: 'release', value: 'none' }
     ]
-  },
-  {
+  },{
     name: 'hbp-identity-service',
     params: [
       { name: 'GERRIT_REFSPEC', value: 'refs/heads/master' },
       { name : 'GERRIT_BRANCH', value : 'master' },
       { name: 'release', value: 'false' }
     ]
-  },
-  {
+  },{
     name: 'collaboratory-functional-tests',
     params: [
       { name: 'GERRIT_REFSPEC', value: 'refs/heads/master' },
